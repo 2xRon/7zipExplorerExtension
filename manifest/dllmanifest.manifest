@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+  <assemblyIdentity version="1.0.0.0" name="7ZipMenu"/>
+  <msix xmlns="urn:schemas-microsoft-com:msix.v1"
+    publisher="CN=7ZipExplorerExtension"
+    packageName="7ZipExplorerExtension"
+    applicationId="SevenZipContextMenu" />
+</assembly>

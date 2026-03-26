@@ -1,0 +1,29 @@
+# Build output
+build/
+*.msix
+*.obj
+*.lib
+*.exp
+*.pdb
+*.ilk
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.ncb
+*.sdf
+*.opensdf
+*.VC.db
+*.VC.opendb
+ipch/
+
+# Dev certificates
+scripts/dev-cert.pfx
+*.pfx
+*.cer
+
+# OS files
+Thumbs.db
+desktop.ini
+.DS_Store
