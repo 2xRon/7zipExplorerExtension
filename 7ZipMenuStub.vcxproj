@@ -41,7 +41,7 @@
   <PropertyGroup>
     <OutDir>$(SolutionDir)build\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)build\obj\stub\$(Configuration)\</IntDir>
-    <TargetName>7ZipMenu</TargetName>
+    <TargetName>7ZipMenuStub</TargetName>
     <TargetExt>.exe</TargetExt>
   </PropertyGroup>
 

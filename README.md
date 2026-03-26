@@ -12,8 +12,6 @@ A Windows 11 context menu shell extension that integrates [7-Zip](https://www.7-
 - **Dynamic labels** — shows actual filenames (e.g., `Extract to "project\"`, `Add to "photos.7z"`)
 - **Smart visibility** — extract/test commands only appear for archive files
 - **Full 7-Zip integration** — delegates to `7zG.exe`, `7zFM.exe`, and `7z.exe`
-- **CRC SHA submenu** — CRC-32, CRC-64, SHA-1, SHA-256, and combined hash
-
 ### Context Menu Items
 
 | Command | Description |
@@ -29,7 +27,6 @@ A Windows 11 context menu shell extension that integrates [7-Zip](https://www.7-
 | Add to "name.zip" | Quick compress to .zip |
 | Compress to "name.7z" and email | Compress to .7z and email |
 | Compress to "name.zip" and email | Compress to .zip and email |
-| CRC SHA | Hash submenu (CRC-32, CRC-64, SHA-1, SHA-256, \*) |
 
 ## Prerequisites
 
@@ -49,10 +46,20 @@ A Windows 11 context menu shell extension that integrates [7-Zip](https://www.7-
 ### Using MSBuild directly
 
 ```powershell
-msbuild 7ZipMenu.vcxproj -p:Configuration=Release -p:Platform=x64
+msbuild 7ZipExplorerExtension.sln -p:Configuration=Release -p:Platform=x64
 ```
 
-The output DLL is at `build\Release\7ZipMenu.dll`.
+This builds the COM DLL (`build\Release\7ZipMenu.dll`), the stub executable, and the MSIX package.
+
+### Using Visual Studio
+
+Open `7ZipExplorerExtension.sln` in Visual Studio 2022/2026. Set the **Package** project as the startup project and build. The solution contains three projects:
+
+| Project | Output | Purpose |
+|---------|--------|---------|
+| 7ZipMenu | `7ZipMenu.dll` | COM DLL shell extension |
+| 7ZipMenuStub | `7ZipMenuStub.exe` | Stub required by MSIX schema |
+| Package | `.msix` | Windows Application Packaging Project |
 
 ## Installation
 
@@ -109,7 +116,7 @@ Explorer (right-click)
 |-----------|---------|
 | `ExplorerCommandBase` | Base class with shared IExplorerCommand implementation |
 | `SevenZipRootCommand` | Top-level "7-Zip" cascading menu (COM-registered CLSID) |
-| `SubCommands` | 14 leaf commands with dynamic titles and smart visibility |
+| `SubCommands` | 12 leaf commands with dynamic titles and smart visibility |
 | `CommandEnumerator` | `IEnumExplorerCommand` for Explorer to discover subcommands |
 | `SevenZipUtils` | Finds 7-Zip installation via registry, detects archive file types |
 | Sparse MSIX | Provides app identity for Windows 11 modern menu registration |
@@ -125,7 +132,13 @@ The extension searches for 7-Zip in this order:
 ## Project Structure
 
 ```
-├── 7ZipMenu.vcxproj            # MSBuild project
+├── 7ZipExplorerExtension.sln   # Visual Studio solution
+├── 7ZipMenu.vcxproj            # COM DLL project
+├── 7ZipMenuStub.vcxproj        # Stub executable project
+├── Package/
+│   ├── Package.wapproj         # Windows Application Packaging Project
+│   ├── Package.appxmanifest    # Full MSIX manifest
+│   └── Images/                 # Package logo assets
 ├── src/
 │   ├── dllmain.cpp             # DLL entry points
 │   ├── framework.h             # Common includes

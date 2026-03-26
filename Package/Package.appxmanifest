@@ -12,7 +12,8 @@
   <Identity
     Name="7ZipExplorerExtension"
     Publisher="CN=7ZipExplorerExtension"
-    Version="1.0.0.0" />
+    Version="1.0.0.0"
+    ProcessorArchitecture="x64" />
 
   <Properties>
     <DisplayName>7-Zip Explorer Extension</DisplayName>
@@ -27,12 +28,12 @@
   </Dependencies>
 
   <Resources>
-    <Resource Language="x-generate" />
+    <Resource Language="en-us" />
   </Resources>
 
   <Applications>
     <Application Id="SevenZipContextMenu"
-                 Executable="7ZipMenu.exe"
+                 Executable="7ZipMenuStub.exe"
                  EntryPoint="windows.fullTrustApplication">
       <uap:VisualElements
         DisplayName="7-Zip Explorer Extension"
@@ -59,11 +60,11 @@
         <desktop4:Extension Category="windows.fileExplorerContextMenus">
           <desktop4:FileExplorerContextMenus>
             <desktop5:ItemType Type="*">
-              <desktop5:Verb Id="SevenZipMenu"
+              <desktop5:Verb Id="00007ZipMenu"
                 Clsid="E45E7D43-4F1C-4B5C-9A8D-6D3B7A9E1C2F" />
             </desktop5:ItemType>
             <desktop5:ItemType Type="Directory">
-              <desktop5:Verb Id="SevenZipMenu"
+              <desktop5:Verb Id="00007ZipMenu"
                 Clsid="E45E7D43-4F1C-4B5C-9A8D-6D3B7A9E1C2F" />
             </desktop5:ItemType>
           </desktop4:FileExplorerContextMenus>

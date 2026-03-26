@@ -66,18 +66,22 @@ namespace SevenZipUtils
             }
         }
 
-        // Try well-known paths
-        const LPCWSTR knownPaths[] = {
-            L"C:\\Program Files\\7-Zip\\",
-            L"C:\\Program Files (x86)\\7-Zip\\",
-        };
+        // Try well-known paths via SHGetKnownFolderPath
+        const KNOWNFOLDERID folderIds[] = { FOLDERID_ProgramFiles, FOLDERID_ProgramFilesX86 };
 
-        for (LPCWSTR p : knownPaths)
+        for (const auto& folderId : folderIds)
         {
-            if (FileExists(std::wstring(p) + L"7z.exe"))
+            PWSTR folderPath = nullptr;
+            if (SUCCEEDED(SHGetKnownFolderPath(folderId, 0, nullptr, &folderPath)))
             {
-                s_cachedInstallPath = p;
-                return s_cachedInstallPath;
+                std::wstring candidate = std::wstring(folderPath) + L"\\7-Zip\\";
+                CoTaskMemFree(folderPath);
+
+                if (FileExists(candidate + L"7z.exe"))
+                {
+                    s_cachedInstallPath = candidate;
+                    return s_cachedInstallPath;
+                }
             }
         }
 

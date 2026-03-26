@@ -34,7 +34,7 @@
 
   <Applications>
     <Application Id="SevenZipContextMenu"
-                 Executable="7ZipMenu.exe"
+                 Executable="7ZipMenuStub.exe"
                  EntryPoint="windows.fullTrustApplication">
       <uap:VisualElements
         DisplayName="7-Zip Explorer Extension"
