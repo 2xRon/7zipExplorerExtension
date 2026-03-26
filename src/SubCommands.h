@@ -101,15 +101,7 @@ protected:
     HRESULT OnInvoke(IShellItemArray* psia) override;
 };
 
-// ---- CRC SHA submenu ----
-
-class CmdCrcSha : public ExplorerCommandBase
-{
-protected:
-    LPCWSTR GetStaticTitle() override { return L"CRC SHA"; }
-    EXPCMDFLAGS GetCommandFlags() override { return ECF_HASSUBCOMMANDS; }
-    IFACEMETHODIMP EnumSubCommands(IEnumExplorerCommand** ppEnum) override;
-};
+// ---- CRC SHA items (flattened — Win11 doesn't support 2-level nesting) ----
 
 // Individual hash commands
 class CmdHashBase : public ExplorerCommandBase
@@ -124,4 +116,22 @@ protected:
 private:
     LPCWSTR m_title;
     LPCWSTR m_hashType;
+};
+
+// "SHA-256 -> filename.sha256" — generates a .sha256 checksum file
+class CmdHashToFile : public ExplorerCommandBase
+{
+protected:
+    bool HasDynamicTitle() override { return true; }
+    std::wstring GetDynamicTitle(IShellItemArray* psia) override;
+    HRESULT OnInvoke(IShellItemArray* psia) override;
+};
+
+// "Test archive : Checksum" — verifies archive integrity via checksum
+class CmdTestChecksum : public ExplorerCommandBase
+{
+protected:
+    LPCWSTR GetStaticTitle() override { return L"Test archive : Checksum"; }
+    EXPCMDSTATE GetCommandState(IShellItemArray* psia) override;
+    HRESULT OnInvoke(IShellItemArray* psia) override;
 };

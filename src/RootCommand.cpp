@@ -30,10 +30,6 @@ IFACEMETHODIMP SevenZipRootCommand::EnumSubCommands(IEnumExplorerCommand** ppEnu
     enumerator->AddCommand(Make<CmdCompressTo7zEmail>());
     enumerator->AddCommand(Make<CmdAddToZip>());
     enumerator->AddCommand(Make<CmdCompressToZipEmail>());
-    enumerator->AddCommand(Make<CmdSeparator>());
-
-    // Group 4: Hash operations
-    enumerator->AddCommand(Make<CmdCrcSha>());
 
     return enumerator.CopyTo(ppEnum);
 }

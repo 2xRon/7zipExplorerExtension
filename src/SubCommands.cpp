@@ -228,27 +228,50 @@ HRESULT CmdCompressToZipEmail::OnInvoke(IShellItemArray* psia)
 }
 
 // ============================================================
-// CRC SHA submenu
+// CRC SHA items (flattened into main menu)
 // ============================================================
-
-IFACEMETHODIMP CmdCrcSha::EnumSubCommands(IEnumExplorerCommand** ppEnum)
-{
-    auto enumerator = Make<CommandEnumerator>();
-    enumerator->AddCommand(Make<CmdHashBase>(L"CRC-32", L"CRC32"));
-    enumerator->AddCommand(Make<CmdHashBase>(L"CRC-64", L"CRC64"));
-    enumerator->AddCommand(Make<CmdHashBase>(L"SHA-1", L"SHA1"));
-    enumerator->AddCommand(Make<CmdHashBase>(L"SHA-256", L"SHA256"));
-    enumerator->AddCommand(Make<CmdHashBase>(L"*", L"*"));
-    return enumerator.CopyTo(ppEnum);
-}
 
 // ---- CmdHashBase ----
 
 HRESULT CmdHashBase::OnInvoke(IShellItemArray* psia)
 {
-    std::wstring exe = SevenZipUtils::Get7zExePath();
-    if (exe.empty()) return E_FAIL;
+    std::wstring gui = SevenZipUtils::Get7zGUIPath();
+    if (gui.empty()) return E_FAIL;
 
     std::wstring args = L"h -scrc" + std::wstring(m_hashType) + L" " + BuildFileArgs(psia);
-    return LaunchProcess(exe, args, GetWorkDir(psia));
+    return LaunchProcess(gui, args, GetWorkDir(psia));
+}
+
+// ---- CmdHashToFile ----
+
+std::wstring CmdHashToFile::GetDynamicTitle(IShellItemArray* psia)
+{
+    std::wstring name = GetFirstDisplayName(psia);
+    if (name.empty()) return L"SHA-256 -> .sha256";
+    return L"SHA-256 -> " + name + L".sha256";
+}
+
+HRESULT CmdHashToFile::OnInvoke(IShellItemArray* psia)
+{
+    std::wstring gui = SevenZipUtils::Get7zGUIPath();
+    if (gui.empty()) return E_FAIL;
+
+    std::wstring args = L"h -scrcSHA256 -seth " + BuildFileArgs(psia);
+    return LaunchProcess(gui, args, GetWorkDir(psia));
+}
+
+// ---- CmdTestChecksum ----
+
+EXPCMDSTATE CmdTestChecksum::GetCommandState(IShellItemArray* psia)
+{
+    return SevenZipUtils::HasArchiveItem(psia) ? ECS_ENABLED : ECS_HIDDEN;
+}
+
+HRESULT CmdTestChecksum::OnInvoke(IShellItemArray* psia)
+{
+    std::wstring gui = SevenZipUtils::Get7zGUIPath();
+    if (gui.empty()) return E_FAIL;
+
+    std::wstring args = L"t -scrcSHA256 " + BuildFileArgs(psia);
+    return LaunchProcess(gui, args, GetWorkDir(psia));
 }
