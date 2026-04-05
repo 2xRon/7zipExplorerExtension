@@ -5,12 +5,27 @@
 
 $ErrorActionPreference = "Stop"
 $ProjectRoot = Split-Path $PSScriptRoot -Parent
-$projPath = Join-Path $ProjectRoot "src\7ZipMenu\7ZipMenu.csproj"
+$VcxprojPath = Join-Path $ProjectRoot "7ZipMenu.vcxproj"
+
+# Find MSBuild via vswhere
+$vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+if (-not (Test-Path $vswhere)) {
+    Write-Error "vswhere.exe not found. Is Visual Studio installed?"
+    exit 1
+}
+
+$vsPath = & $vswhere -latest -property installationPath
+$msbuild = Join-Path $vsPath "MSBuild\Current\Bin\MSBuild.exe"
+
+if (-not (Test-Path $msbuild)) {
+    Write-Error "MSBuild.exe not found at $msbuild"
+    exit 1
+}
 
 Write-Host "Using MSBuild: $msbuild"
 Write-Host "Building Release|x64..."
 
-& dotnet publish $projPath /p:Configuration=Release /p:Platform=x64 /m /v:minimal
+& $msbuild $VcxprojPath /p:Configuration=Release /p:Platform=x64 /m /v:minimal
 if ($LASTEXITCODE -ne 0) {
     Write-Error "Build failed with exit code $LASTEXITCODE"
     exit 1
