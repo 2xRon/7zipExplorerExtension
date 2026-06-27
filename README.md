@@ -3,7 +3,8 @@
 A Windows 11 context menu shell extension that integrates [7-Zip](https://www.7-zip.org/) into the **modern right-click menu** — no more digging through "Show more options."
 
 ![Windows 11](https://img.shields.io/badge/Windows%2011-0078D4?style=flat&logo=windows11&logoColor=white)
-![C++17](https://img.shields.io/badge/C%2B%2B17-00599C?style=flat&logo=c%2B%2B&logoColor=white)
+![.NET 10](https://img.shields.io/badge/.NET%2010-512BD4?style=flat&logo=dotnet&logoColor=white)
+![C#](https://img.shields.io/badge/C%23-239120?style=flat&logo=csharp&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 ## Features
@@ -32,33 +33,36 @@ A Windows 11 context menu shell extension that integrates [7-Zip](https://www.7-
 
 - **Windows 11** (build 19041+)
 - **7-Zip** installed ([download](https://www.7-zip.org/download.html))
-- **Visual Studio 2022/2026** with "Desktop development with C++" workload
-- **Windows 10/11 SDK**
+- **.NET 10 SDK**
+- **Visual Studio 2022/2026** (or Build Tools) with the **Desktop development with C++** workload — Native AOT links the native image with the MSVC toolchain
+- **Windows 10/11 SDK** — provides `makeappx.exe` / `signtool.exe` used by `install.ps1`
 
 ## Building
 
-### Using the build script
+### Using the build script (recommended)
 
 ```powershell
 .\scripts\build.ps1
 ```
 
-### Using MSBuild directly
+This publishes the Native AOT COM DLL to `build\Release\7ZipMenu.dll`. It works from any shell — Native AOT locates the MSVC linker itself. The MSIX sparse package is assembled later by `install.ps1`.
+
+### Using dotnet directly
 
 ```powershell
-msbuild 7ZipExplorerExtension.sln -p:Configuration=Release -p:Platform=x64
+dotnet publish src\7ZipMenu\7ZipMenu.csproj /p:Configuration=Release /p:Platform=x64
 ```
 
-This builds the COM DLL (`build\Release\7ZipMenu.dll`), the stub executable, and the MSIX package.
+Native AOT compiles the DLL to native code, so the **Desktop development with C++** workload (MSVC toolchain) must be installed.
 
 ### Using Visual Studio
 
-Open `7ZipExplorerExtension.sln` in Visual Studio 2022/2026. Set the **Package** project as the startup project and build. The solution contains three projects:
+Open `7ZipMenu.slnx` in Visual Studio 2022/2026 and build. The solution contains three projects:
 
 | Project | Output | Purpose |
 |---------|--------|---------|
-| 7ZipMenu | `7ZipMenu.dll` | COM DLL shell extension |
-| 7ZipMenuStub | `7ZipMenuStub.exe` | Stub required by MSIX schema |
+| 7ZipMenu | `7ZipMenu.dll` | COM DLL shell extension (Native AOT) |
+| 7ZipMenuStub | `7ZipMenuStub.exe` | Stub required by the MSIX schema |
 | Package | `.msix` | Windows Application Packaging Project |
 
 ## Installation
@@ -99,7 +103,7 @@ Right-click any file in Explorer — you should see **7-Zip** in the modern cont
 
 ## How It Works
 
-The extension is a **COM DLL** (`7ZipMenu.dll`) that implements the `IExplorerCommand` interface using WRL (Windows Runtime C++ Template Library). It registers via a **sparse MSIX package** to gain the app identity required by Windows 11's modern context menu.
+The extension is a **COM DLL** (`7ZipMenu.dll`) written in C# and compiled ahead-of-time with **.NET Native AOT**. It implements the `IExplorerCommand` interface via source-generated COM interop (`[GeneratedComInterface]` / `[GeneratedComClass]`), so the target machine needs no .NET runtime installed. It registers via a **sparse MSIX package** to gain the app identity required by Windows 11's modern context menu.
 
 ```
 Explorer (right-click)
@@ -132,32 +136,30 @@ The extension searches for 7-Zip in this order:
 ## Project Structure
 
 ```
-├── 7ZipExplorerExtension.sln   # Visual Studio solution
-├── 7ZipMenu.vcxproj            # COM DLL project
-├── 7ZipMenuStub.vcxproj        # Stub executable project
-├── Package/
-│   ├── Package.wapproj         # Windows Application Packaging Project
-│   ├── Package.appxmanifest    # Full MSIX manifest
-│   └── Images/                 # Package logo assets
+├── 7ZipMenu.slnx               # Visual Studio solution (XML format)
 ├── src/
-│   ├── dllmain.cpp             # DLL entry points
-│   ├── framework.h             # Common includes
-│   ├── ExplorerCommand.h/cpp   # Base IExplorerCommand class
-│   ├── RootCommand.h/cpp       # Top-level cascading menu
-│   ├── SubCommands.h/cpp       # All leaf commands
-│   ├── CommandEnumerator.h/cpp # IEnumExplorerCommand
-│   ├── SevenZipUtils.h/cpp     # 7-Zip path discovery
-│   ├── Source.def              # DLL exports
-│   └── 7ZipMenu.rc            # Resources + embedded manifest
+│   ├── 7ZipMenu/               # COM DLL shell extension (C# / Native AOT)
+│   │   ├── 7ZipMenu.csproj
+│   │   ├── DllExports.cs           # DllGetClassObject / DllCanUnloadNow exports
+│   │   ├── ClassFactory.cs         # IClassFactory implementation
+│   │   ├── ExplorerCommandBase.cs  # Base IExplorerCommand implementation
+│   │   ├── SevenZipRootCommand.cs  # Top-level "7-Zip" cascading menu
+│   │   ├── CommandEnumerator.cs    # IEnumExplorerCommand
+│   │   ├── SevenZipUtils.cs         # 7-Zip path discovery + archive detection
+│   │   ├── NativeMethods/           # COM interface & enum definitions
+│   │   └── SubCommands/             # Leaf commands (extract / compress / etc.)
+│   ├── 7ZipMenuStub/           # Stub executable required by the MSIX schema
+│   └── Package/                # Windows Application Packaging Project (.wapproj)
 ├── manifest/
 │   ├── AppxManifest.xml        # Sparse package manifest
-│   └── dllmanifest.manifest    # Embedded MSIX identity
+│   └── dllmanifest.manifest    # Embedded activation manifest
 ├── scripts/
-│   ├── build.ps1               # Build script
+│   ├── build.ps1               # Build the Native AOT DLL via `dotnet publish`
 │   ├── create-certificate.ps1  # Dev certificate setup
 │   ├── install.ps1             # Package, sign, and register
 │   └── uninstall.ps1           # Remove extension
-└── sparse-package/             # MSIX staging directory
+├── sparse-package/             # MSIX staging directory
+└── old/                        # Legacy C++/WRL implementation (archived)
 ```
 
 ## License

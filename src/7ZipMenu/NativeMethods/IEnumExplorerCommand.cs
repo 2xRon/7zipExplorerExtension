@@ -10,12 +10,16 @@ namespace SevenZipMenu;
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal partial interface IEnumExplorerCommand
 {
+    // pceltFetched is a raw uint* (not `out uint`) because the IEnumXxx::Next
+    // contract permits callers to pass NULL when celt == 1. An `out uint` makes
+    // the generated stub dereference unconditionally, which would access-violate
+    // on a NULL pointer; the implementation null-checks before writing.
     [PreserveSig]
-    int Next(
+    unsafe int Next(
         uint celt,
         [MarshalUsing(CountElementName = nameof(celt))][Out]
         IExplorerCommand?[] pUICommand,
-        out uint pceltFetched);
+        uint* pceltFetched);
 
     [PreserveSig]
     int Skip(uint celt);

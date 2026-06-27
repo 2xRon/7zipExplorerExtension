@@ -2,17 +2,12 @@
 using System;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Marshalling;
-using System.Threading;
 
 namespace SevenZipMenu;
 
 internal static class DllExports
 {
-    private static int s_objectCount;
     private static readonly StrategyBasedComWrappers s_comWrappers = new();
-
-    internal static void IncrementObjectCount() => Interlocked.Increment(ref s_objectCount);
-    internal static void DecrementObjectCount() => Interlocked.Decrement(ref s_objectCount);
 
     [UnmanagedCallersOnly(EntryPoint = "DllGetClassObject")]
     public static unsafe int DllGetClassObject(Guid* rclsid, Guid* riid, nint* ppv)
@@ -43,9 +38,12 @@ internal static class DllExports
         }
     }
 
+    // This is a Native AOT in-process server: the .NET runtime is statically
+    // linked into this DLL and does not support being torn down (its GC and
+    // finalizer threads keep running). Letting the host FreeLibrary us would
+    // unmap a live runtime and crash, so we always report S_FALSE ("do not
+    // unload"). The module stays resident for the host process's lifetime,
+    // which is the standard, safe policy for an in-proc .NET COM server.
     [UnmanagedCallersOnly(EntryPoint = "DllCanUnloadNow")]
-    public static int DllCanUnloadNow()
-    {
-        return s_objectCount == 0 ? 0 : 1; // S_OK : S_FALSE
-    }
+    public static int DllCanUnloadNow() => 1; // S_FALSE - never unload
 }

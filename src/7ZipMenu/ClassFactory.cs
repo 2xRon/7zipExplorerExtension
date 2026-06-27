@@ -30,7 +30,6 @@ internal partial class SevenZipClassFactory : IClassFactoryLocal
                 return hr;
 
             ppvObject = result;
-            DllExports.IncrementObjectCount();
             return 0; // S_OK
         }
         catch (Exception ex)
@@ -39,12 +38,7 @@ internal partial class SevenZipClassFactory : IClassFactoryLocal
         }
     }
 
-    public int LockServer(bool fLock)
-    {
-        if (fLock)
-            DllExports.IncrementObjectCount();
-        else
-            DllExports.DecrementObjectCount();
-        return 0; // S_OK
-    }
+    // The module never unloads (see DllExports.DllCanUnloadNow), so there is no
+    // lock count to maintain; just acknowledge the request.
+    public int LockServer(bool fLock) => 0; // S_OK
 }

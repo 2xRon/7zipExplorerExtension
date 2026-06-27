@@ -1,5 +1,4 @@
 #nullable enable
-using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices.Marshalling;
 
@@ -16,7 +15,7 @@ internal partial class CommandEnumerator : IEnumExplorerCommand
         _commands.Add(command);
     }
 
-    public int Next(uint celt, IExplorerCommand?[] pUICommand, out uint pceltFetched)
+    public unsafe int Next(uint celt, IExplorerCommand?[] pUICommand, uint* pceltFetched)
     {
         uint fetched = 0;
 
@@ -26,14 +25,26 @@ internal partial class CommandEnumerator : IEnumExplorerCommand
             fetched++;
         }
 
-        pceltFetched = fetched;
+        // pceltFetched may be NULL when celt == 1 (IEnumXxx::Next contract).
+        if (pceltFetched != null)
+            *pceltFetched = fetched;
         return fetched == celt ? 0 : 1; // S_OK : S_FALSE
     }
 
     public int Skip(uint celt)
     {
-        _current = (int)Math.Min(_current + celt, (uint)_commands.Count);
-        return _current < _commands.Count ? 0 : 1; // S_OK : S_FALSE
+        // S_OK only if the full celt elements were skipped; S_FALSE if we ran out
+        // first (IEnumXxx::Skip contract). Comparing against the remaining count
+        // avoids conflating "skipped exactly to the end" with "skipped fewer".
+        uint remaining = (uint)(_commands.Count - _current);
+        if (celt <= remaining)
+        {
+            _current += (int)celt;
+            return 0; // S_OK
+        }
+
+        _current = _commands.Count;
+        return 1; // S_FALSE
     }
 
     public int Reset()
