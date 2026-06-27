@@ -465,3 +465,6 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+/sparse-package/7ZipMenu.dll
+/sparse-package/7ZipMenuStub.exe
+/sparse-package/AppxManifest.xml
