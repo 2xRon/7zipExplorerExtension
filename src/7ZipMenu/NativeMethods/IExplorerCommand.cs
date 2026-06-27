@@ -33,12 +33,16 @@ internal partial interface IExplorerCommand
         [MarshalAs(UnmanagedType.Bool)] bool fOkToBeSlow,
         out EXPCMDSTATE pCmdState);
 
+    // NOTE: The vtable order below MUST match the Windows SDK IExplorerCommand
+    // (shobjidl_core.h): GetState, Invoke, GetFlags, EnumSubCommands. Reordering
+    // these (e.g. moving Invoke last) shifts the vtable slots and silently routes
+    // Explorer's GetFlags/EnumSubCommands calls to the wrong methods.
+    [PreserveSig]
+    int Invoke(nint psiItemArray, nint pbc);
+
     [PreserveSig]
     int GetFlags(out EXPCMDFLAGS pFlags);
 
     [PreserveSig]
     int EnumSubCommands(out IEnumExplorerCommand? ppEnum);
-
-    [PreserveSig]
-    int Invoke(nint psiItemArray, nint pbc);
 }

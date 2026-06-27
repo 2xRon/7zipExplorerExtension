@@ -1,5 +1,8 @@
 # Build output
 build/
+
+# Diagnostic ABI smoke-test harness (not part of the shipping product)
+tools/abi-smoke/
 *.msix
 *.msixbundle
 *.appx

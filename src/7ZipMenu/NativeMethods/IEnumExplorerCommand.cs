@@ -13,7 +13,7 @@ internal partial interface IEnumExplorerCommand
     [PreserveSig]
     int Next(
         uint celt,
-        [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 0)]
+        [MarshalUsing(CountElementName = nameof(celt))][Out]
         IExplorerCommand?[] pUICommand,
         out uint pceltFetched);
 
