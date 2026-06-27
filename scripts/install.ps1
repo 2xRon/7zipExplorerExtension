@@ -1,8 +1,8 @@
 #Requires -RunAsAdministrator
 <#
 .SYNOPSIS
-    Builds the sparse package, signs it, and registers it with Windows.
-    The DLL must already be built (run build.ps1 first).
+    Builds the MSIX package (7ZipMenu.dll + stub bundled in), signs it from the
+    cert store, and registers it with Windows. Run build.ps1 first.
 #>
 
 $ErrorActionPreference = "Stop"
@@ -13,9 +13,9 @@ $ManifestDir = Join-Path $ProjectRoot "manifest"
 $ScriptsDir = $PSScriptRoot
 
 $DllPath = Join-Path $BuildDir "7ZipMenu.dll"
+$StubPath = Join-Path $BuildDir "7ZipMenuStub.exe"
 $MsixPath = Join-Path $BuildDir "7ZipExplorerExtension.msix"
-$PfxPath = Join-Path $ScriptsDir "dev-cert.pfx"
-$PfxPassword = "7ZipExtDev"
+$SignSubject = "CN=7ZipExplorerExtension"
 
 # --- Validate prerequisites ---
 
@@ -24,14 +24,20 @@ if (-not (Test-Path $DllPath)) {
     exit 1
 }
 
-if (-not (Test-Path $PfxPath)) {
-    Write-Error "dev-cert.pfx not found. Run create-certificate.ps1 first."
+if (-not (Test-Path $StubPath)) {
+    Write-Error "7ZipMenuStub.exe not found at $StubPath. Run build.ps1 first."
+    exit 1
+}
+
+$cert = Get-ChildItem Cert:\CurrentUser\My | Where-Object { $_.Subject -eq $SignSubject } | Select-Object -First 1
+if (-not $cert) {
+    Write-Error "Signing certificate '$SignSubject' not found in CurrentUser\My. Run create-certificate.ps1 first."
     exit 1
 }
 
 # --- Prepare sparse package staging directory ---
 
-Write-Host "Preparing sparse package..."
+Write-Host "Preparing package..."
 
 # Copy manifest
 Copy-Item (Join-Path $ManifestDir "AppxManifest.xml") $SparseDir -Force
@@ -41,6 +47,12 @@ $assetsDir = Join-Path $SparseDir "Assets"
 if (-not (Test-Path $assetsDir)) {
     New-Item -ItemType Directory -Path $assetsDir -Force | Out-Null
 }
+
+# Bundle the actual binaries INSIDE the package so the signed MSIX and its block
+# map cover the executable code. The DLL then loads from the locked WindowsApps
+# location instead of an external, user-writable folder.
+Copy-Item $DllPath $SparseDir -Force
+Copy-Item $StubPath $SparseDir -Force
 
 # --- Find Windows SDK tools ---
 
@@ -82,7 +94,7 @@ if ($existingPkg) {
 
 # --- Build MSIX ---
 
-Write-Host "Building sparse package..."
+Write-Host "Building MSIX package..."
 if (Test-Path $MsixPath) { Remove-Item $MsixPath -Force }
 
 & $makeappxExe pack /o /d $SparseDir /nv /p $MsixPath
@@ -93,8 +105,8 @@ if ($LASTEXITCODE -ne 0) {
 
 # --- Sign MSIX ---
 
-Write-Host "Signing package..."
-& $signtoolExe sign /fd SHA256 /a /f $PfxPath /p $PfxPassword $MsixPath
+Write-Host "Signing package with certificate $($cert.Thumbprint)..."
+& $signtoolExe sign /fd SHA256 /sha1 $($cert.Thumbprint) $MsixPath
 if ($LASTEXITCODE -ne 0) {
     Write-Error "signtool failed with exit code $LASTEXITCODE"
     exit 1
@@ -102,8 +114,8 @@ if ($LASTEXITCODE -ne 0) {
 
 # --- Register sparse package ---
 
-Write-Host "Registering sparse package with external location: $BuildDir"
-Add-AppxPackage -Path $MsixPath -ExternalLocation $BuildDir
+Write-Host "Registering package (binaries bundled in the signed MSIX)..."
+Add-AppxPackage -Path $MsixPath
 
 Write-Host ""
 Write-Host "Installation complete!"

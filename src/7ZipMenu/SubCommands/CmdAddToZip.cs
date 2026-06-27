@@ -1,4 +1,5 @@
 #nullable enable
+using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices.Marshalling;
 
@@ -17,9 +18,9 @@ internal partial class CmdAddToZip : ExplorerCommandBase
     {
         string gui = SevenZipUtils.Get7zGUIPath();
         if (gui.Length == 0) return unchecked((int)0x80004005);
-        string workDir = GetWorkDir(psia);
-        string stem = GetArchiveStem(psia);
-        string args = $"a -tzip \"{Path.Combine(workDir, stem)}.zip\" " + BuildFileArgs(psia);
-        return LaunchProcess(gui, args, workDir);
+        string archive = Path.Combine(GetWorkDir(psia), GetArchiveStem(psia)) + ".zip";
+        var args = new List<string> { "a", "-tzip", archive };
+        args.AddRange(GetAllFilePaths(psia));
+        return LaunchProcess(gui, args);
     }
 }

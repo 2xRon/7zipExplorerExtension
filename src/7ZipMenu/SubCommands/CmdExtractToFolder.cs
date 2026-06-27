@@ -1,4 +1,5 @@
 #nullable enable
+using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices.Marshalling;
 
@@ -26,14 +27,11 @@ internal partial class CmdExtractToFolder : ExplorerCommandBase
         string gui = SevenZipUtils.Get7zGUIPath();
         if (gui.Length == 0) return unchecked((int)0x80004005);
 
-        var paths = GetAllFilePaths(psia);
-        foreach (var p in paths)
+        foreach (var p in GetAllFilePaths(psia))
         {
             string stem = StripArchiveExtensions(Path.GetFileName(p));
-            string parentDir = GetParentDirectory(p);
-            string outDir = Path.Combine(parentDir, stem);
-            string args = $"x -y -o\"{outDir}\" \"{p}\"";
-            LaunchProcess(gui, args, parentDir);
+            string outDir = Path.Combine(GetParentDirectory(p), stem);
+            LaunchProcess(gui, new List<string> { "x", "-y", "-o" + outDir, p });
         }
         return 0;
     }

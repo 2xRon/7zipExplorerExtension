@@ -7,8 +7,6 @@
 
 $ErrorActionPreference = "Stop"
 $Subject = "CN=7ZipExplorerExtension"
-$PfxPath = Join-Path $PSScriptRoot "dev-cert.pfx"
-$PfxPassword = "7ZipExtDev"
 
 # Check if cert already exists
 $existing = Get-ChildItem Cert:\CurrentUser\My | Where-Object { $_.Subject -eq $Subject }
@@ -29,19 +27,21 @@ $cert = New-SelfSignedCertificate `
 
 Write-Host "Certificate created: $($cert.Thumbprint)"
 
-# Export PFX
-$password = ConvertTo-SecureString -String $PfxPassword -Force -AsPlainText
-Export-PfxCertificate -Cert $cert -FilePath $PfxPath -Password $password | Out-Null
-Write-Host "Exported PFX to: $PfxPath"
-
-# Trust the certificate for sideloading
+# Trust the certificate for sideloading. Only the PUBLIC certificate is placed in
+# the TrustedPeople store; the private key stays in CurrentUser\My and is never
+# written to disk. install.ps1 signs directly from the store by thumbprint, so
+# there is no PFX (and no shared password) that could be recovered to forge a
+# package this machine would trust.
 Write-Host "Adding certificate to Trusted People store (requires admin)..."
-$certFile = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($PfxPath, $PfxPassword)
+$publicCert = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($cert.RawData)
 $store = New-Object System.Security.Cryptography.X509Certificates.X509Store("TrustedPeople", "LocalMachine")
 $store.Open("ReadWrite")
-$store.Add($certFile)
+$store.Add($publicCert)
 $store.Close()
 
+# Remove any PFX left on disk by older versions of this script.
+$oldPfx = Join-Path $PSScriptRoot "dev-cert.pfx"
+if (Test-Path $oldPfx) { Remove-Item $oldPfx -Force; Write-Host "Removed stale dev-cert.pfx." }
+
 Write-Host ""
-Write-Host "Done! Certificate is trusted for sideloading."
-Write-Host "PFX password: $PfxPassword"
+Write-Host "Done! Certificate is trusted for sideloading (private key kept in the store; no PFX on disk)."

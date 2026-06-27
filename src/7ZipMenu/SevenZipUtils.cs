@@ -44,7 +44,10 @@ internal static class SevenZipUtils
         s_pathCached = true;
 
         string[] valueNames = ["Path64", "Path"];
-        RegistryKey[] roots = [Registry.LocalMachine, Registry.CurrentUser];
+        // HKLM only. HKCU is writable by the (unprivileged) current user, so honoring
+        // it would let same-user malware redirect every menu action to a malicious
+        // 7z*.exe. A real 7-Zip install records its path under HKLM.
+        RegistryKey[] roots = [Registry.LocalMachine];
 
         foreach (var root in roots)
         {

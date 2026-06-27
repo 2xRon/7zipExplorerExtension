@@ -31,6 +31,18 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
+# Build the stub executable. It is bundled INSIDE the signed MSIX (the manifest's
+# windows.fullTrustApplication entry point) next to 7ZipMenu.dll, so the package
+# signature covers all executable code.
+$stubProj = Join-Path $ProjectRoot "src\7ZipMenuStub\7ZipMenuStub.csproj"
+$buildRelease = Join-Path $ProjectRoot "build\Release"
+Write-Host "Building stub executable (7ZipMenuStub.exe)..."
+& dotnet publish $stubProj /p:Configuration=Release /p:Platform=x64 -o $buildRelease /m /v:minimal
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Stub build failed with exit code $LASTEXITCODE"
+    exit 1
+}
+
 $dllPath = Join-Path $ProjectRoot "build\Release\7ZipMenu.dll"
 if (Test-Path $dllPath) {
     Write-Host ""

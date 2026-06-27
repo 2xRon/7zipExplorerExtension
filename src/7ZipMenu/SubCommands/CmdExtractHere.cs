@@ -1,4 +1,5 @@
 #nullable enable
+using System.Collections.Generic;
 using System.Runtime.InteropServices.Marshalling;
 
 
@@ -16,8 +17,8 @@ internal partial class CmdExtractHere : ExplorerCommandBase
     {
         string gui = SevenZipUtils.Get7zGUIPath();
         if (gui.Length == 0) return unchecked((int)0x80004005);
-        string workDir = GetWorkDir(psia);
-        string args = $"x -y -o\"{workDir}\" " + BuildFileArgs(psia);
-        return LaunchProcess(gui, args, workDir);
+        var args = new List<string> { "x", "-y", "-o" + GetWorkDir(psia) };
+        args.AddRange(GetAllFilePaths(psia));
+        return LaunchProcess(gui, args);
     }
 }

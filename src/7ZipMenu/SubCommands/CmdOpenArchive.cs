@@ -1,4 +1,5 @@
 #nullable enable
+using System.Collections.Generic;
 using System.Runtime.InteropServices.Marshalling;
 
 
@@ -23,9 +24,8 @@ internal partial class CmdOpenArchive : ExplorerCommandBase
         string fm = SevenZipUtils.Get7zFMPath();
         if (fm.Length == 0) return unchecked((int)0x80004005);
 
-        var paths = GetAllFilePaths(psia);
-        foreach (var p in paths)
-            LaunchProcess(fm, QuotePath(p), GetParentDirectory(p));
+        foreach (var p in GetAllFilePaths(psia))
+            LaunchProcess(fm, new List<string> { p });
         return 0;
     }
 }

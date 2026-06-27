@@ -19,7 +19,6 @@
     <DisplayName>7-Zip Explorer Extension</DisplayName>
     <PublisherDisplayName>7-Zip Explorer Extension</PublisherDisplayName>
     <Logo>Assets\placeholder.png</Logo>
-    <uap10:AllowExternalContent>true</uap10:AllowExternalContent>
   </Properties>
 
   <Dependencies>

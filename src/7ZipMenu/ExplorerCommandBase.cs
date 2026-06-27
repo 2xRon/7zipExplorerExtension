@@ -168,19 +168,24 @@ internal abstract partial class ExplorerCommandBase : IExplorerCommand
     internal static string GetParentDirectory(string path) =>
         Path.GetDirectoryName(path) ?? string.Empty;
 
-    internal static string QuotePath(string path) => "\"" + path + "\"";
-
-    internal static int LaunchProcess(string exePath, string args, string? workingDir = null)
+    internal static int LaunchProcess(string exePath, IReadOnlyList<string> arguments)
     {
         try
         {
             var psi = new ProcessStartInfo
             {
                 FileName = exePath,
-                Arguments = args,
-                WorkingDirectory = workingDir ?? string.Empty,
+                // The launched program's OWN (trusted) folder - never the archive's
+                // directory, which may be attacker-controlled and would let a planted
+                // DLL be preloaded into 7-Zip.
+                WorkingDirectory = Path.GetDirectoryName(exePath) ?? string.Empty,
                 UseShellExecute = false,
             };
+            // Pass each argument separately so the runtime quotes/escapes it. Building
+            // a single command-line string by hand risks switch/quote injection from
+            // crafted file names; ArgumentList makes that structurally impossible.
+            foreach (string arg in arguments)
+                psi.ArgumentList.Add(arg);
             Process.Start(psi);
             return 0;
         }
@@ -188,19 +193,6 @@ internal abstract partial class ExplorerCommandBase : IExplorerCommand
         {
             return unchecked((int)0x80004005);
         }
-    }
-
-    protected static string BuildFileArgs(IShellItemArray? psia)
-    {
-        var paths = GetAllFilePaths(psia);
-        var sb = new System.Text.StringBuilder();
-        foreach (var p in paths)
-        {
-            sb.Append('"');
-            sb.Append(p);
-            sb.Append("\" ");
-        }
-        return sb.ToString();
     }
 
     protected static string GetArchiveStem(IShellItemArray? psia)
