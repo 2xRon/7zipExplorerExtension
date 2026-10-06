@@ -39,6 +39,14 @@ if (-not $cert) {
 
 Write-Host "Preparing package..."
 
+# Git does not preserve empty directories. Recover from older runs that may
+# have created a file at the staging path when the directory was absent.
+if (Test-Path $SparseDir -PathType Leaf) {
+    Write-Host "Removing invalid sparse-package staging file..."
+    Remove-Item $SparseDir -Force
+}
+New-Item -ItemType Directory -Path $SparseDir -Force | Out-Null
+
 # Copy manifest
 Copy-Item (Join-Path $ManifestDir "AppxManifest.xml") $SparseDir -Force
 
