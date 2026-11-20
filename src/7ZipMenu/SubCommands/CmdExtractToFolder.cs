@@ -13,10 +13,9 @@ internal partial class CmdExtractToFolder : ExplorerCommandBase
 
     protected override string? GetDynamicTitle(IShellItemArray? psia)
     {
-        string? name = GetFirstDisplayName(psia);
-        if (string.IsNullOrEmpty(name)) return "Extract to folder\\";
-        string stem = StripArchiveExtensions(name);
-        return $"Extract to \"{stem}\\\"";
+        List<string> archives = GetArchivePaths(psia);
+        if (archives.Count == 0) return "Extract to folder\\";
+        return $"Extract to \"{GetExtractFolderName(archives)}\\\"";
     }
 
     protected override EXPCMDSTATE GetCommandState(IShellItemArray? psia) =>
@@ -27,11 +26,11 @@ internal partial class CmdExtractToFolder : ExplorerCommandBase
         string gui = SevenZipUtils.Get7zGUIPath();
         if (gui.Length == 0) return unchecked((int)0x80004005);
 
-        foreach (var p in GetAllFilePaths(psia))
+        foreach (string archive in GetArchivePaths(psia))
         {
-            string stem = StripArchiveExtensions(Path.GetFileName(p));
-            string outDir = Path.Combine(GetParentDirectory(p), stem);
-            LaunchProcess(gui, new List<string> { "x", "-y", "-o" + outDir, p });
+            string stem = StripArchiveExtensions(Path.GetFileName(archive));
+            string outDir = Path.Combine(GetParentDirectory(archive), stem);
+            LaunchProcess(gui, new List<string> { "x", "-o" + outDir, archive });
         }
         return 0;
     }

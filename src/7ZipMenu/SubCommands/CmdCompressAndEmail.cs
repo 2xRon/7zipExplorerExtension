@@ -14,7 +14,7 @@ internal partial class CmdCompressAndEmail : ExplorerCommandBase
     {
         string gui = SevenZipUtils.Get7zGUIPath();
         if (gui.Length == 0) return unchecked((int)0x80004005);
-        var args = new List<string> { "a", "-seml" };
+        var args = new List<string> { "a", "-ad", "-seml", GetTargetArchivePath(psia, ".7z") };
         args.AddRange(GetAllFilePaths(psia));
         return LaunchProcess(gui, args);
     }

@@ -39,14 +39,18 @@ if (-not $cert) {
 
 Write-Host "Preparing package..."
 
+# The staging folder is not tracked by git; without it Copy-Item would create a
+# file named "sparse-package" instead of copying into a folder.
+New-Item -ItemType Directory -Path $SparseDir -Force | Out-Null
+
 # Copy manifest
 Copy-Item (Join-Path $ManifestDir "AppxManifest.xml") $SparseDir -Force
 
-# Ensure Assets folder exists with placeholder
+# The manifest names Assets\placeholder.png as every logo, so it must exist.
 $assetsDir = Join-Path $SparseDir "Assets"
-if (-not (Test-Path $assetsDir)) {
-    New-Item -ItemType Directory -Path $assetsDir -Force | Out-Null
-}
+New-Item -ItemType Directory -Path $assetsDir -Force | Out-Null
+$logoSource = Join-Path $ProjectRoot "src\Package\Images\Square44x44Logo.png"
+Copy-Item $logoSource (Join-Path $assetsDir "placeholder.png") -Force
 
 # Bundle the actual binaries INSIDE the package so the signed MSIX and its block
 # map cover the executable code. The DLL then loads from the locked WindowsApps
