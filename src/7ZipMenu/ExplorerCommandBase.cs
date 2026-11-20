@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Marshalling;
 
@@ -129,16 +130,11 @@ internal abstract partial class ExplorerCommandBase : IExplorerCommand
         return result;
     }
 
-    internal static string? GetFirstDisplayName(IShellItemArray? psia)
+    internal static uint GetItemCount(IShellItemArray? psia)
     {
-        if (psia is null) return null;
+        if (psia is null) return 0;
         psia.GetCount(out uint count);
-        if (count == 0) return null;
-        psia.GetItemAt(0, out IShellItem item);
-        item.GetDisplayName(SIGDN.SIGDN_NORMALDISPLAY, out nint namePtr);
-        string result = Marshal.PtrToStringUni(namePtr) ?? string.Empty;
-        Marshal.FreeCoTaskMem(namePtr);
-        return result;
+        return count;
     }
 
     internal static List<string> GetAllFilePaths(IShellItemArray? psia)
@@ -155,6 +151,35 @@ internal abstract partial class ExplorerCommandBase : IExplorerCommand
         }
         return paths;
     }
+
+    internal static List<string> GetArchivePaths(IShellItemArray? psia) =>
+        GetAllFilePaths(psia).FindAll(
+            path => SevenZipUtils.IsArchiveExtension(Path.GetExtension(path)));
+
+    // An output folder applies to a whole 7-Zip run, so archives are extracted
+    // with one run per containing folder.
+    internal static IEnumerable<List<string>> GroupByParent(IEnumerable<string> paths) =>
+        paths.GroupBy(GetParentDirectory, StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.ToList());
+
+    // 7-Zip reads only the first file name as the archive and treats any further
+    // names as filters on its contents, so several archives go through -an and -ai.
+    internal static void AddArchiveSelection(List<string> args, IReadOnlyList<string> archives)
+    {
+        if (archives.Count == 1)
+        {
+            args.Add(archives[0]);
+            return;
+        }
+
+        args.Add("-an");
+        foreach (string archive in archives)
+            args.Add("-ai!" + archive);
+    }
+
+    // 7-Zip replaces "*" in an output path with each archive's name.
+    internal static string GetExtractFolderName(IReadOnlyList<string> archives) =>
+        archives.Count == 1 ? StripArchiveExtensions(Path.GetFileName(archives[0])) : "*";
 
     internal static string StripArchiveExtensions(string filename)
     {
@@ -195,12 +220,27 @@ internal abstract partial class ExplorerCommandBase : IExplorerCommand
         }
     }
 
+    // Matches the classic 7-Zip menu: a single item names the archive after itself,
+    // several items name it after the folder that holds them.
     protected static string GetArchiveStem(IShellItemArray? psia)
     {
+        const string fallback = "archive";
         string? path = GetFirstFilePath(psia);
-        if (string.IsNullOrEmpty(path)) return "archive";
-        return StripArchiveExtensions(Path.GetFileName(path));
+        if (string.IsNullOrEmpty(path)) return fallback;
+
+        string stem;
+        if (GetItemCount(psia) > 1)
+            stem = Path.GetFileName(GetParentDirectory(path));
+        else if (Directory.Exists(path))
+            stem = Path.GetFileName(path);
+        else
+            stem = StripArchiveExtensions(Path.GetFileName(path));
+
+        return stem.Length == 0 ? fallback : stem;
     }
+
+    protected static string GetTargetArchivePath(IShellItemArray? psia, string extension) =>
+        Path.Combine(GetWorkDir(psia), GetArchiveStem(psia)) + extension;
 
     protected static string GetWorkDir(IShellItemArray? psia)
     {

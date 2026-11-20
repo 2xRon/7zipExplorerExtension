@@ -17,8 +17,13 @@ internal partial class CmdExtractHere : ExplorerCommandBase
     {
         string gui = SevenZipUtils.Get7zGUIPath();
         if (gui.Length == 0) return unchecked((int)0x80004005);
-        var args = new List<string> { "x", "-y", "-o" + GetWorkDir(psia) };
-        args.AddRange(GetAllFilePaths(psia));
-        return LaunchProcess(gui, args);
+
+        foreach (List<string> archives in GroupByParent(GetArchivePaths(psia)))
+        {
+            var args = new List<string> { "x", "-o" + GetParentDirectory(archives[0]) };
+            AddArchiveSelection(args, archives);
+            LaunchProcess(gui, args);
+        }
+        return 0;
     }
 }

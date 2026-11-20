@@ -24,8 +24,8 @@ internal partial class CmdOpenArchive : ExplorerCommandBase
         string fm = SevenZipUtils.Get7zFMPath();
         if (fm.Length == 0) return unchecked((int)0x80004005);
 
-        foreach (var p in GetAllFilePaths(psia))
-            LaunchProcess(fm, new List<string> { p });
+        foreach (string archive in GetArchivePaths(psia))
+            LaunchProcess(fm, new List<string> { archive });
         return 0;
     }
 }

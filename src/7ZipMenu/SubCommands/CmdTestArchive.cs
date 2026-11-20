@@ -18,7 +18,7 @@ internal partial class CmdTestArchive : ExplorerCommandBase
         string gui = SevenZipUtils.Get7zGUIPath();
         if (gui.Length == 0) return unchecked((int)0x80004005);
         var args = new List<string> { "t" };
-        args.AddRange(GetAllFilePaths(psia));
+        AddArchiveSelection(args, GetArchivePaths(psia));
         return LaunchProcess(gui, args);
     }
 }
